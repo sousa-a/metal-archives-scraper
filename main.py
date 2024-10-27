@@ -48,7 +48,7 @@ def scrape_letter_bands(letter, existing_bands):
 
     start = 0
     start_time = time.time()
-    chunk_size = 5  # Number of bands to save in each chunk
+    chunk_size = 500  # Number of bands to save in each chunk
     chunk_bands = []  # Temporary list to hold the current chunk of bands
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
