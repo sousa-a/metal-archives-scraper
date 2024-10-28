@@ -15,6 +15,11 @@ def fetch_band_page(band):
     genre = band[2]
     status = BeautifulSoup(band[3], 'html.parser').text
 
+    # print("*" * 50)
+    # print(f"Fetching band page for {band_name}")
+    # os.system('cls' if os.name == 'nt' else 'clear')
+    # print("*" * 50)
+
     try:
         retries = 3
         for _ in range(retries):
@@ -74,13 +79,21 @@ def scrape_letter_bands(letter, existing_bands):
 
                     # Save to CSV if the chunk size is reached
                     if len(chunk_bands) >= chunk_size:
-                        print(f"Saving {chunk_size} bands to CSV")
+                        # print(f"Saving {chunk_size} bands to CSV")
                         save_to_csv(chunk_bands)
+                        
+                        os.system('cls' if os.name == 'nt' else 'clear')
+                        print("*" * 50)
+                        print(f"Saved {len(bands) + len(chunk_bands)} bands in the csv")
+
                         chunk_bands.clear()  # Clear the list for the next chunk
 
             start += 500
-            print(f"Scraped {len(bands) + len(chunk_bands)} bands so far")
-            print(f"Elapsed time: {time.time() - start_time:.2f} seconds ")
+            
+            print(f"Letter {letter}")
+            print("*" * 50)
+
+            # print(f"Elapsed time: {time.time() - start_time:.2f} seconds ")
             time.sleep(20)
 
     # Save any remaining bands that didn't fill a complete chunk
