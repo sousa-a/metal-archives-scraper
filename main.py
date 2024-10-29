@@ -109,10 +109,14 @@ def load_existing_bands():
 def main():
     existing_bands = load_existing_bands()  # Load existing bands from CSV
     categories = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + ["NBR", "~"]
+    # categories = ["~"]
 
     for letter in categories:
         print(f"Scraping bands in {letter}")
         scrape_letter_bands(letter, existing_bands)
+
+    # Run the band scraper
+    band_scraper.main()
 
 if __name__ == "__main__":
     headers = {

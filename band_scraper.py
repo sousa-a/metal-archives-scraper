@@ -3,8 +3,9 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
+import os
 
-def extract_discography(soup):
+def extract_discography(soup, band_id):
     """Extract the discography data from the band's page."""
     discography = []
     disco_table = soup.select_one('table.display.discog')  # Locate the table by class
@@ -25,12 +26,16 @@ def extract_discography(soup):
             
             reviews_element = row.select_one('td:nth-child(4) a')
             reviews_text = reviews_element.text.strip() if reviews_element else 'No Reviews'  # Default if not found
+
+            # band_id = row.select_one('td:nth-child(5) a')['href'].split('/')[-1]
             
             # Append the album data to the discography list
-            discography.append([name, type_, year, reviews_text])
+            discography.append([name, type_, year, reviews_text, band_id])
 
-            print(f"Album: {name}, Type: {type_}, Year: {year}, Reviews: {reviews_text}")
+            print(f"Album: {name}, Type: {type_}, Year: {year}, Reviews: {reviews_text}, Band ID: {band_id}")
             print('-' * 40)
+            os.system('cls' if os.name == 'nt' else 'clear')
+
     else:
         print("Discography table not found.")
     
@@ -72,14 +77,14 @@ def scrape_band_page(band_name, band_id):
     #     return
     
     # Extract data from each tab
-    discography = extract_discography(soup)
+    discography = extract_discography(soup, band_id)
     # members = extract_members(soup)
 
     sanitized_band_name = re.sub(r'[<>:"/\\|?*]', '_', band_name)  # Replace invalid characters with an underscore
 
     # Save discography to CSV
     if discography:
-        df_disco = pd.DataFrame(discography, columns=["Album Name", "Type", "Year", "Reviews"])
+        df_disco = pd.DataFrame(discography, columns=["Album Name", "Type", "Year", "Reviews", "Band ID"])
         # df_disco.to_csv(f"bands_discos/{band_name.replace('/', '_')}_discography.csv", index=False)
         df_disco.to_csv(f"bands_discos/{sanitized_band_name}_discography.csv", index=False)    
     # Save members to CSV
@@ -96,20 +101,20 @@ def main():
     print(f"Scraping {len(bands_df)} bands.")
     
     # Ensure the required columns are present
-    if 'Band' not in bands_df.columns or 'URL' not in bands_df.columns or 'ID' not in bands_df.columns:
+    if 'Name' not in bands_df.columns or 'URL' not in bands_df.columns not in bands_df.columns:
         print("CSV file is missing 'Band' or 'URL' or 'ID' columns.")
         return
     
     # Extract band ID from URL and process each band
     for _, row in bands_df.iterrows():
-        band_name = row['Band']
+        band_name = row['Name']
         band_url = row['URL']
-        band_id = row['ID']
+        # band_id = row['ID']
         
         # Extract the band ID from the URL
         band_id = band_url.split('/')[-1]  # Get the ID from the last segment of the URL
         
-        print(f"Scraping {band_name} with ID {band_id}")
+        print(f"Scraping {band_name}, ID: {band_id}")
         scrape_band_page(band_name, band_id)
         time.sleep(1)  # Small delay to avoid server overload
 
