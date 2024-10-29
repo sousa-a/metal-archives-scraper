@@ -10,7 +10,6 @@ def extract_discography(soup, band_id):
     """Extract the discography data from the band's page."""
     discography = []
     disco_table = soup.select_one('table.display.discog')  # Locate the table by class
-    start_time = time.time()
     if disco_table:
         rows = disco_table.select('tbody tr')  # Select all rows in the tbody
         for row in rows:
