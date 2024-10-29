@@ -36,28 +36,64 @@ def sanitize_filename(name):
     return name
 
 def save_genre_subgraph(G, genre, output_dir, color_map):
-    """Generate and save a subgraph for a specific genre."""
-    genre_subgraph = G.subgraph([genre] + 
-                                [node for node, data in G.nodes(data=True) 
-                                 if data.get('type') == 'band' and genre in G[node]])
+    """Generate and save a subgraph for a specific genre with improved layout."""
+    genre_subgraph = G.subgraph(
+        [genre] + [node for node, data in G.nodes(data=True) 
+                   if data.get('type') == 'band' and genre in G[node]]
+    )
 
-    node_colors = [
+    # Define edge colors based on node types
+    edge_colors = [
         color_map['genre'] if G.nodes[node].get('type') == 'genre' else color_map['band']
+        for node in genre_subgraph.nodes
+    ]
+
+    # Different sizes for genre and band nodes
+    node_sizes = [
+        300 if G.nodes[node].get('type') == 'genre' else 600
         for node in genre_subgraph.nodes
     ]
 
     sanitized_genre = sanitize_filename(genre)
 
-    plt.figure(figsize=(8, 6))
-    pos = nx.spring_layout(genre_subgraph, seed=42)  # Position layout
-    nx.draw_networkx_nodes(genre_subgraph, pos, node_color=node_colors, node_size=100)
-    nx.draw_networkx_edges(genre_subgraph, pos, alpha=0.5)
-    nx.draw_networkx_labels(genre_subgraph, pos, font_size=8)
+    plt.figure(figsize=(10, 8))
+    pos = nx.spring_layout(genre_subgraph, seed=42, k=0.5)  # Adjust spring layout
 
-    plt.title(f"Genre: {genre} - Bands Connection")
+    # Draw nodes with border color and no fill
+    nx.draw_networkx_nodes(
+        genre_subgraph,
+        pos,
+        node_size=node_sizes,
+        node_color='none',         # Set fill to transparent
+        edgecolors=edge_colors,     # Border colors
+        linewidths=2,              # Set border thickness
+        alpha=1                    # Fully opaque borders
+    )
+
+    # Draw edges with different styles
+    nx.draw_networkx_edges(
+        genre_subgraph, pos, alpha=0.5, edge_color='gray', style='dotted'
+    )
+    
+    # Adjust label positions to be below the nodes
+    label_pos = {node: (x, y - 0.1) for node, (x, y) in pos.items()}  # Shift downwards
+
+    # Draw labels at adjusted positions
+    nx.draw_networkx_labels(
+        genre_subgraph,
+        label_pos,  # Use the adjusted positions for labels
+        font_size=10,
+        font_color='black',
+        font_weight='bold',
+        bbox=dict(facecolor='none', edgecolor='none'),  # No background for labels
+    )
+
+    plt.title(f"Genre: {genre} - Bands Connection", fontsize=14)
     plt.axis('off')
+    
     plt.savefig(os.path.join(output_dir, f"{sanitized_genre}_bands_network.png"))
     plt.close()  # Close the figure to save memory
+
 
 def main():
     # Load the data
