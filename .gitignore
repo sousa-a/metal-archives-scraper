@@ -1,2 +1,6 @@
 #ignore csv
 *.csv
+*.png
+
+#except sample_data
+!sample_data/*.csv
