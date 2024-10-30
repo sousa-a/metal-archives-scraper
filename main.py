@@ -8,12 +8,17 @@ import re
 import concurrent.futures
 import time
 
+# TODO 1: Add ID column to the CSV file
+
 def fetch_band_page(band):
     band_name = BeautifulSoup(band[0], 'html.parser').text
     band_url = BeautifulSoup(band[0], 'html.parser').a['href']
     country = band[1]
     genre = band[2]
     status = BeautifulSoup(band[3], 'html.parser').text
+
+    # Retrieve the ID from the url
+    band_id = re.search(r'/(\d+)', band_url).group(1)
 
     # print("*" * 50)
     # print(f"Fetching band page for {band_name}")
@@ -30,7 +35,7 @@ def fetch_band_page(band):
                 photo_img_tag = band_page_soup.find("a", {"id": "photo"})
                 photo_url = photo_img_tag['href'] if photo_img_tag else None
 
-                return [band_name, band_url, country, genre, status, photo_url]
+                return [band_id, band_name, band_url, country, genre, status, photo_url]
             elif band_page_response.status_code == 429:
                 print("Rate limited. Waiting 2 seconds before retrying...")
                 time.sleep(2)
@@ -38,10 +43,10 @@ def fetch_band_page(band):
                 break
     except requests.RequestException as e:
         print(f"Error fetching band page for {band_name}: {e}")
-    return [band_name, band_url, country, genre, status, None]
+    return [band_id, band_name, band_url, country, genre, status, None]
 
 def save_to_csv(bands):
-    df = pd.DataFrame(bands, columns=["Name", "URL", "Country", "Genre", "Status", "Photo_URL"])
+    df = pd.DataFrame(bands, columns=["ID", "Name", "URL", "Country", "Genre", "Status", "Photo_URL"])
     if os.path.exists("metal_bands.csv"):
         df.to_csv("metal_bands.csv", mode="a", header=False, index=False)
     else:

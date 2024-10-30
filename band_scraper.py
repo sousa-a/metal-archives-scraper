@@ -6,6 +6,8 @@ import time
 import os
 import glob
 
+# TODO: save the discography data to a single CSV file
+
 def get_last_processed_band():
     """Get the name of the last processed band based on files in the 'bands_discos' directory."""
     # Find all files in 'bands_discos' ending with '_discography.csv'
