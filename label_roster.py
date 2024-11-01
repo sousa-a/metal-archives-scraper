@@ -14,7 +14,7 @@ def get_last_processed_label():
     if processed_df.empty:
         return None
     
-    last_label_id = processed_df['Label ID'].iloc[-1]  # Get the last processed label ID
+    last_label_id = processed_df['Label ID'].iloc[-1]
     return last_label_id
 
 def fetch_band_data(label_id, max_retries=5):
@@ -84,18 +84,15 @@ def main():
             label_id = row['Label ID']
             label_name = row['Name']
             
-            # Start processing only after the last processed label
             if not start_processing:
                 if label_id == last_processed_label:
                     start_processing = True
                 continue
 
-            # Submit the fetch_band_data task to executor if start_processing is True
             if start_processing:
                 future = executor.submit(fetch_band_data, label_id)
                 future_to_label[future] = row
 
-        # Handle the results as they complete
         for future in concurrent.futures.as_completed(future_to_label):
             row = future_to_label[future]
             label_id = row['Label ID']
