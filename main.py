@@ -46,7 +46,7 @@ def fetch_band_page(band):
     return [band_id, band_name, band_url, country, genre, status, None]
 
 def save_to_csv(bands):
-    df = pd.DataFrame(bands, columns=["ID", "Name", "URL", "Country", "Genre", "Status", "Photo_URL"])
+    df = pd.DataFrame(bands, columns=["Band ID", "Name", "URL", "Country", "Genre", "Status", "Photo_URL"])
     if os.path.exists("metal_bands.csv"):
         df.to_csv("metal_bands.csv", mode="a", header=False, index=False)
     else:

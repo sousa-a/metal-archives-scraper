@@ -36,7 +36,7 @@ def fetch_label_data(label):
 def save_labels_to_csv(labels):
 
     os.makedirs("labels", exist_ok=True)
-    df = pd.DataFrame(labels, columns=["ID", "Name", "Specialization", "Status", "Country", "Website", "Online Shopping"])
+    df = pd.DataFrame(labels, columns=["Label ID", "Name", "Specialization", "Status", "Country", "Website", "Online Shopping"])
     csv_path = os.path.join("labels", "labels.csv")
     
     if os.path.exists(csv_path):
