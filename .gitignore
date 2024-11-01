@@ -4,3 +4,4 @@
 
 #except sample_data
 !sample_data/*.csv
+!labels/*.csv

@@ -75,13 +75,14 @@ def scrape_labels(letter, existing_labels):
                     labels.append(label_data)
 
             start += chunk_size
-            print(f"Scraped {len(labels)} labels for letter {letter}")
             time.sleep(1)
-            
+        
+        os.system('cls' if os.name == 'nt' else 'clear')
         elapsed_time = time.time() - start_time
         hours, rem = divmod(elapsed_time, 3600)
         minutes, seconds = divmod(rem, 60)
         print(f"Time elapsed: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+        print(f"Scraped {len(labels)} labels for letter {letter}")
 
 
     if labels:
