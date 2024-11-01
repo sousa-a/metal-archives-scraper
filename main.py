@@ -58,8 +58,8 @@ def scrape_letter_bands(letter, existing_bands):
 
     start = 0
     start_time = time.time()
-    chunk_size = 500  # Number of bands to save in each chunk
-    chunk_bands = []  # Temporary list to hold the current chunk of bands
+    chunk_size = 500
+    chunk_bands = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         while True:
@@ -79,10 +79,9 @@ def scrape_letter_bands(letter, existing_bands):
             band_data_futures = [executor.submit(fetch_band_page, band) for band in data['aaData']]
             for future in concurrent.futures.as_completed(band_data_futures):
                 band_data = future.result()
-                if band_data and band_data[1] not in existing_bands:  # Check if the band URL is not already saved
+                if band_data and band_data[1] not in existing_bands:
                     chunk_bands.append(band_data)
 
-                    # Save to CSV if the chunk size is reached
                     if len(chunk_bands) >= chunk_size:
                         # print(f"Saving {chunk_size} bands to CSV")
                         save_to_csv(chunk_bands)
@@ -91,7 +90,7 @@ def scrape_letter_bands(letter, existing_bands):
                         print("*" * 50)
                         print(f"Saved {len(bands) + len(chunk_bands)} bands in the csv")
 
-                        chunk_bands.clear()  # Clear the list for the next chunk
+                        chunk_bands.clear()
 
             start += 500
             
@@ -101,26 +100,23 @@ def scrape_letter_bands(letter, existing_bands):
             # print(f"Elapsed time: {time.time() - start_time:.2f} seconds ")
             time.sleep(20)
 
-    # Save any remaining bands that didn't fill a complete chunk
     if chunk_bands:
         save_to_csv(chunk_bands)
 
 def load_existing_bands():
     if os.path.exists("metal_bands.csv"):
         df = pd.read_csv("metal_bands.csv")
-        return set(df['URL'])  # Assuming 'URL' is the column name for band URLs
+        return set(df['URL'])
     return set()
 
 def main():
-    existing_bands = load_existing_bands()  # Load existing bands from CSV
+    existing_bands = load_existing_bands()
     categories = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + ["NBR", "~"]
-    # categories = ["~"]
 
     for letter in categories:
         print(f"Scraping bands in {letter}")
         scrape_letter_bands(letter, existing_bands)
 
-    # Run the band scraper
     band_scraper.main()
 
 if __name__ == "__main__":
