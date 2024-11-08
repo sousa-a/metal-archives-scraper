@@ -79,6 +79,7 @@ def main():
     batch_size = 500
 
     for _, row in bands_df.iterrows():
+
         band_name = row['Name']
         band_url = row['URL']
         band_id = band_url.split('/')[-1]
@@ -87,8 +88,7 @@ def main():
             if band_id == last_processed_band_id:
                 start_processing = True
             continue
-        
-        os.system('cls' if os.name == 'nt' else 'clear')
+
         print(f"Scraping {band_name}, ID: {band_id}")
         band_discography = scrape_band_page(band_name, band_id)
         if band_discography:
@@ -102,6 +102,8 @@ def main():
         hours, rem = divmod(elapsed_time, 3600)
         minutes, seconds = divmod(rem, 60)
         print(f"Time elapsed: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+        os.system('cls' if os.name == 'nt' else 'clear')
+
 
     if discographies:
         save_to_master_file(discographies)

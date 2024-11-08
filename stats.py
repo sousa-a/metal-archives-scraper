@@ -1,120 +1,179 @@
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib
 import os
 import re
 
-def load_data(file_path):
-    """Load the metal_bands.csv file."""
-    return pd.read_csv(file_path)
+matplotlib.rcParams['font.family'] = 'DejaVu Sans'
 
-def create_graph(bands_df):
-    """Create a base NetworkX graph with all genres and bands."""
-    G = nx.Graph()
-    for index, row in bands_df.iterrows():
+
+def adjust_label_positions(pos, adjustment_value):
+    """Adjust the vertical (y) position of the labels by a fixed amount."""
+    adjusted_pos = pos.copy()
+    for node in adjusted_pos:
+        x, y = adjusted_pos[node]
+        adjusted_pos[node] = (x, y + adjustment_value)
+    return adjusted_pos
+
+def save_improved_graph(G, output_path):
+    """Improved function for saving a graph visualization with adjusted label positions."""
+    plt.figure(figsize=(150, 150))
+    
+    pos = nx.spring_layout(G, seed=42, k=0.5, iterations=100)
+    
+    pos_labels = adjust_label_positions(pos, adjustment_value=0.5)
+    
+    node_sizes = [800 + len(list(G.neighbors(node)))*100 for node in G.nodes]
+    
+    color_map = {'genre': 'red', 'band': 'blue', 'album': 'green'}
+    node_colors = [color_map.get(G.nodes[node].get('type', 'other'), 'gray') for node in G.nodes]
+    
+    nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, edgecolors='black', linewidths=1.5)
+    nx.draw_networkx_edges(G, pos, alpha=0.3, edge_color='gray')    
+    nx.draw_networkx_labels(G, pos_labels, font_size=12, font_color='black')
+    
+    plt.title("Improved Network Visualization", fontsize=14)
+    plt.axis('off')
+    plt.savefig(output_path)
+    plt.close()
+
+def load_data(band_file_path, album_file_path):
+    """Load the metal_bands.csv and all_bands_discography.csv files."""
+    print(f"Loading data from {band_file_path} and {album_file_path}...")
+    bands_df = pd.read_csv(band_file_path, low_memory=False)
+    albums_df = pd.read_csv(album_file_path, low_memory=False)
+    
+    bands_df['Band ID'] = bands_df['Band ID'].astype(str).str.strip()
+    albums_df['Band ID'] = albums_df['Band ID'].astype(str).str.strip()
+
+    print("Data loaded successfully.")
+    return bands_df, albums_df
+
+def create_genre_graph(bands_df):
+    """Create a NetworkX graph with genres connected to bands."""
+    print("Creating genre graph...")
+    genre_graph = nx.Graph()
+    
+    for _, row in bands_df.iterrows():
         band_name = row['Name']
         genre = row['Genre']
         
-        # Add genre node if not present
-        if genre not in G:
-            G.add_node(genre, type='genre')
+        if genre not in genre_graph:
+            genre_graph.add_node(genre, type='genre')
         
-        # Add band node
-        G.add_node(band_name, type='band')
+        genre_graph.add_node(band_name, type='band')
+        genre_graph.add_edge(band_name, genre)
+    
+    print(f"Genre graph created with {len(genre_graph.nodes)} nodes and {len(genre_graph.edges)} edges.")
+    return genre_graph
+
+def create_album_graph(bands_df, albums_df):
+    """Create a NetworkX graph with bands connected to their albums."""
+    print("Creating album graph...")
+    album_graph = nx.Graph()
+    
+    album_count = 0
+    for _, row in bands_df.iterrows():
+        band_name = row['Name']
+        band_id = row['Band ID']
         
-        # Connect band to genre
-        G.add_edge(band_name, genre)
-    return G
+        album_graph.add_node(band_name, type='band', band_id=band_id)
+    
+    for _, row in albums_df.iterrows():
+        band_id = row['Band ID']
+        album_name = row['Album Name']
+        album_type = row['Type']
+        album_year = row['Year']
+        
+        band_row = bands_df[bands_df['Band ID'] == band_id]
+        if not band_row.empty:
+            band_name = band_row.iloc[0]['Name']
+            album_graph.add_node(album_name, type='album', album_type=album_type, year=album_year)
+            album_graph.add_edge(band_name, album_name)
+            album_count += 1
+        else:
+            print(f"Warning: Band ID {band_id} in album {album_name} not found in the bands data.")
+    
+    print(f"Album graph created with {len(album_graph.nodes)} nodes and {album_count} edges.")
+    return album_graph
 
 def sanitize_filename(name):
     """Sanitize the filename by replacing problematic characters."""
-    name = re.sub(r'[<>:"/\\|?*]', '_', name)  # Replace invalid filename characters
-    name = re.sub(r'\s+', '_', name)           # Replace spaces with underscores
-    name = re.sub(r'\(.*?\)', '', name)        # Remove parentheses and their contents
-    name = re.sub(r';+', '_', name)            # Replace semicolons with underscores
-    name = name.strip('_')                     # Remove leading/trailing underscores
+    name = re.sub(r'[<>:"/\\|?*]', '_', name)  
+    name = re.sub(r'\s+', '_', name)
+    name = re.sub(r'\(.*?\)', '', name)
+    name = re.sub(r';+', '_', name)
+    name = name.strip('_')
     return name
 
-def save_genre_subgraph(G, genre, output_dir, color_map):
-    """Generate and save a subgraph for a specific genre with improved layout."""
-    genre_subgraph = G.subgraph(
-        [genre] + [node for node, data in G.nodes(data=True) 
-                   if data.get('type') == 'band' and genre in G[node]]
-    )
-
-    # Define edge colors based on node types
-    edge_colors = [
-        color_map['genre'] if G.nodes[node].get('type') == 'genre' else color_map['band']
-        for node in genre_subgraph.nodes
-    ]
-
-    # Different sizes for genre and band nodes
-    node_sizes = [
-        300 if G.nodes[node].get('type') == 'genre' else 600
-        for node in genre_subgraph.nodes
-    ]
-
-    sanitized_genre = sanitize_filename(genre)
-
-    plt.figure(figsize=(10, 8))
-    pos = nx.spring_layout(genre_subgraph, seed=42, k=0.5)  # Adjust spring layout
-
-    # Draw nodes with border color and no fill
-    nx.draw_networkx_nodes(
-        genre_subgraph,
-        pos,
-        node_size=node_sizes,
-        node_color='none',         # Set fill to transparent
-        edgecolors=edge_colors,     # Border colors
-        linewidths=2,              # Set border thickness
-        alpha=1                    # Fully opaque borders
-    )
-
-    # Draw edges with different styles
-    nx.draw_networkx_edges(
-        genre_subgraph, pos, alpha=0.5, edge_color='gray', style='dotted'
-    )
+def save_graph(G, title, output_path, color_map):
+    """General function to save a graph to a file."""
+    print(f"Saving graph: {title}...")
+    plt.figure(figsize=(20, 20))
+    pos = nx.spring_layout(G, seed=42, k=0.5)
     
-    # Adjust label positions to be below the nodes
-    label_pos = {node: (x, y - 0.1) for node, (x, y) in pos.items()}  # Shift downwards
-
-    # Draw labels at adjusted positions
-    nx.draw_networkx_labels(
-        genre_subgraph,
-        label_pos,  # Use the adjusted positions for labels
-        font_size=10,
-        font_color='black',
-        font_weight='bold',
-        bbox=dict(facecolor='none', edgecolor='none'),  # No background for labels
-    )
-
-    plt.title(f"Genre: {genre} - Bands Connection", fontsize=14)
+    node_colors = [color_map.get(G.nodes[node].get('type', 'other'), 'gray') for node in G.nodes]
+    node_sizes = [800 if G.nodes[node].get('type') == 'band' else 400 for node in G.nodes]
+    
+    nx.draw_networkx_nodes(G, pos, node_size=node_sizes, edgecolors='black', linewidths=1.5, node_color='none')
+    
+    nx.draw_networkx_edges(G, pos, alpha=0.3, edge_color='gray')
+    nx.draw_networkx_labels(G, pos, font_size=21, font_color='darkblue', verticalalignment='bottom')
+    
+    plt.title(title, fontsize=14)
     plt.axis('off')
-    
-    plt.savefig(os.path.join(output_dir, f"{sanitized_genre}_bands_network.png"))
-    plt.close()  # Close the figure to save memory
+    plt.savefig(output_path)
+    plt.close()
+    print(f"Graph saved to {output_path}")
 
+def save_genre_subgraph(genre, genre_graph, output_dir):
+    """Save a single genre subgraph with its connected bands."""
+    print(f"Saving genre subgraph for genre: {genre}...")
+    if genre_graph.nodes[genre].get('type') == 'genre':
+        genre_subgraph = genre_graph.subgraph([genre] + list(genre_graph.neighbors(genre)))
+        sanitized_genre = sanitize_filename(genre)
+        output_path = os.path.join(output_dir, f"{sanitized_genre}_genre_network.png")
+        save_graph(genre_subgraph, f"Genre: {genre} - Bands Connection", output_path, color_map={'genre': 'red', 'band': 'blue'})
+
+def save_album_subgraph(band, album_graph, output_dir):
+    """Save a single band's album subgraph with its connected albums."""
+    print(f"Saving album subgraph for band: {band}...")
+    band_subgraph = album_graph.subgraph([band] + list(album_graph.neighbors(band)))
+    sanitized_band = sanitize_filename(band)
+    output_path = os.path.join(output_dir, f"{sanitized_band}_albums_network.png")
+    save_graph(band_subgraph, f"Band: {band} - Albums Connection", output_path, color_map={'album': 'green', 'band': 'blue'})
 
 def main():
-    # Load the data
-    bands_df = load_data('sample_data/metal_bands.csv')
+    bands_file_path = 'metal_bands.csv'
+    albums_file_path = 'bands_discos/all_bands_discography.csv'
+    
+    bands_df, albums_df = load_data(bands_file_path, albums_file_path)
 
-    # Define color scheme for nodes
     color_map = {
-        'genre': 'red',  # Color for genre nodes
-        'band': 'blue',  # Color for band nodes
+        'genre': 'red',
+        'band': 'blue',
+        'album': 'green'
     }
 
-    # Create the graph
-    G = create_graph(bands_df)
+    genre_graph = create_genre_graph(bands_df)
+    album_graph = create_album_graph(bands_df, albums_df)
 
-    # Create a directory to store the images
-    output_dir = 'statistics/genre'
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir_genre = 'statistics/genres'
+    output_dir_album = 'statistics/albums'
+    os.makedirs(output_dir_genre, exist_ok=True)
+    os.makedirs(output_dir_album, exist_ok=True)
 
-    # Generate and save subgraphs for each genre
-    for genre in bands_df['Genre'].unique():
-        save_genre_subgraph(G, genre, output_dir, color_map)
+    print("Available genres to save:")
+    for genre in genre_graph.nodes:
+        if genre_graph.nodes[genre].get('type') == 'genre':
+            save_genre_subgraph(genre, genre_graph, output_dir_genre)
+            print("Subgraph saved.")
 
+    print("\nAvailable bands to save albums for:")
+    for band in bands_df['Name'].unique():
+        save_album_subgraph(band, album_graph, output_dir_album)
+        print("Subgraph saved.")
+        
 if __name__ == "__main__":
     main()
