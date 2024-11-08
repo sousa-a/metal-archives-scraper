@@ -1,7 +1,9 @@
 #ignore csv
 *.csv
 *.png
+*.zip
 
 #except sample_data
 !sample_data/*.csv
 !labels/*.csv
+bands_discos.zip
