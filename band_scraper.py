@@ -50,6 +50,7 @@ def scrape_band_page(band_name, band_id, retries=3):
         "Accept-Language": "en-US,en;q=0.9",
     }
     for attempt in range(retries):
+        time.sleep(3)
         response = requests.get(base_url, headers=headers)
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, "html.parser")
